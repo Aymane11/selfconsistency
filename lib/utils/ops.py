@@ -1,6 +1,6 @@
 import tensorflow as tf
 import numpy as np
-import tensorflow.contrib.slim as slim
+import tf_slim as slim
 
 
 def get_variables(finetune_ckpt_path, exclude_scopes=None):
@@ -40,7 +40,11 @@ def extract_var(starts_with, is_not=False):
     for s in starts_with:
         if not is_not:
             selected_vars.extend(
-                [var for var in tf.compat.v1.trainable_variables() if var.op.name.startswith(s)]
+                [
+                    var
+                    for var in tf.compat.v1.trainable_variables()
+                    if var.op.name.startswith(s)
+                ]
             )
         else:
             selected_vars.extend(
@@ -175,7 +179,9 @@ def pad(input, pad_size):
     if not pad_size:
         return input
     return tf.pad(
-        tensor=input, paddings=[[0, 0], [pad_size, pad_size], [pad_size, pad_size], [0, 0]], mode="REFLECT"
+        tensor=input,
+        paddings=[[0, 0], [pad_size, pad_size], [pad_size, pad_size], [0, 0]],
+        mode="REFLECT",
     )
 
 

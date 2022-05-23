@@ -340,7 +340,8 @@ class EfficientBenchmark:
                     self.max_h_ind + spread - 1,
                     self.max_w_ind + spread - 1,
                 )
-            ) + 1e-4
+            )
+            + 1e-4
         )
 
         iterator = self.argless_extract_inds()

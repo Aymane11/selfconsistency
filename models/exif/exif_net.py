@@ -3,7 +3,8 @@ import tensorflow as tf
 from utils import ops
 from nets import resnet_v2, resnet_utils
 
-slim = tf.contrib.slim
+import tf_slim as slim
+
 resnet_arg_scope = resnet_utils.resnet_arg_scope
 
 
@@ -70,7 +71,9 @@ class EXIFNet:
             self.im_b = tf.compat.v1.placeholder_with_default(
                 im_b, [None, self.im_size, self.im_size, 3]
             )
-            self.label = tf.compat.v1.placeholder_with_default(label, [None, self.num_classes])
+            self.label = tf.compat.v1.placeholder_with_default(
+                label, [None, self.num_classes]
+            )
             self.cls_label = tf.compat.v1.placeholder(tf.float32, [None, 1])
         else:
             self.im_a = tf.compat.v1.placeholder(
@@ -82,7 +85,9 @@ class EXIFNet:
             self.label = tf.compat.v1.placeholder(tf.float32, [None, self.num_classes])
             self.cls_label = tf.compat.v1.placeholder(tf.float32, [None, 1])
 
-        self.is_training = tf.compat.v1.placeholder_with_default(self._is_training, None)
+        self.is_training = tf.compat.v1.placeholder_with_default(
+            self._is_training, None
+        )
 
         self.extract_features = self.extract_features_resnet50
         # if precomputing, need to populate via feed dict then compute with selecting indices
@@ -149,7 +154,9 @@ class EXIFNet:
                 cls_label_list = tf.split(self.cls_label, len(self.use_gpu))
 
             # We intialize the optimizer here
-            self._opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate)
+            self._opt = tf.compat.v1.train.AdamOptimizer(
+                learning_rate=self.learning_rate
+            )
 
             # Used to average
             all_grads = []
@@ -255,7 +262,9 @@ class EXIFNet:
 
         if not self.freeze_base:
             correct_prediction = tf.equal(tf.round(self.pred), tf.round(self.label))
-            self.accuracy = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
+            self.accuracy = tf.reduce_mean(
+                input_tensor=tf.cast(correct_prediction, tf.float32)
+            )
 
         if self.train_classifcation:
             self.cls_out = tf.concat(all_cls_out, axis=0)

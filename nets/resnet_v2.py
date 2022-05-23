@@ -45,7 +45,8 @@ import tensorflow as tf
 
 from nets import resnet_utils
 
-slim = tf.contrib.slim
+import tf_slim as slim
+
 resnet_arg_scope = resnet_utils.resnet_arg_scope
 
 
@@ -215,7 +216,9 @@ def resnet_v2(
                 net = slim.batch_norm(net, activation_fn=tf.nn.relu, scope="postnorm")
                 if global_pool:
                     # Global average pooling.
-                    net = tf.reduce_mean(input_tensor=net, axis=[1, 2], name="pool5", keepdims=True)
+                    net = tf.reduce_mean(
+                        input_tensor=net, axis=[1, 2], name="pool5", keepdims=True
+                    )
                 if num_classes is not None:
                     net = slim.conv2d(
                         net,

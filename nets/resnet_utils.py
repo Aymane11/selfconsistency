@@ -36,7 +36,7 @@ from __future__ import print_function
 import collections
 import tensorflow as tf
 
-slim = tf.contrib.slim
+import tf_slim as slim
 
 
 class Block(collections.namedtuple("Block", ["scope", "unit_fn", "args"])):
@@ -107,7 +107,8 @@ def conv2d_same(inputs, num_outputs, kernel_size, stride, rate=1, scope=None):
         pad_beg = pad_total // 2
         pad_end = pad_total - pad_beg
         inputs = tf.pad(
-            tensor=inputs, paddings=[[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]]
+            tensor=inputs,
+            paddings=[[0, 0], [pad_beg, pad_end], [pad_beg, pad_end], [0, 0]],
         )
         return slim.conv2d(
             inputs,

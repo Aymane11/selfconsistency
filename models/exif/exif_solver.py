@@ -47,16 +47,24 @@ class ExifSolver(object):
         # Initialize some basic things
         self.sess = tf.compat.v1.Session(config=ops.config(self.net.use_gpu))
         if self.init_summary:
-            self.train_writer = tf.compat.v1.summary.FileWriter(os.path.join("./tb", f"{self.exp_name}_train"), self.sess.graph)
+            self.train_writer = tf.compat.v1.summary.FileWriter(
+                os.path.join("./tb", f"{self.exp_name}_train"), self.sess.graph
+            )
 
-            self.test_writer = tf.compat.v1.summary.FileWriter(os.path.join("./tb", f"{self.exp_name}_test"))
+            self.test_writer = tf.compat.v1.summary.FileWriter(
+                os.path.join("./tb", f"{self.exp_name}_test")
+            )
 
             self.setup_summary()
-        self.saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables(), max_to_keep=None)
+        self.saver = tf.compat.v1.train.Saver(
+            tf.compat.v1.global_variables(), max_to_keep=None
+        )
 
         # Try to load checkpoint
         if self.checkpoint is not None:
-            assert os.path.exists(self.checkpoint) or os.path.exists(f"{self.checkpoint}.index"), "checkpoint does not exist"
+            assert os.path.exists(self.checkpoint) or os.path.exists(
+                f"{self.checkpoint}.index"
+            ), "checkpoint does not exist"
             try:
                 self.saver.restore(self.sess, self.checkpoint)
                 self.i = io.parse_checkpoint(self.checkpoint)
@@ -106,8 +114,12 @@ class ExifSolver(object):
         """Setup summary"""
         max_num_out = 2
         self.summary = [
-            tf.compat.v1.summary.image("input_a", self.net.im_a, max_outputs=max_num_out),
-            tf.compat.v1.summary.image("input_b", self.net.im_b, max_outputs=max_num_out),
+            tf.compat.v1.summary.image(
+                "input_a", self.net.im_a, max_outputs=max_num_out
+            ),
+            tf.compat.v1.summary.image(
+                "input_b", self.net.im_b, max_outputs=max_num_out
+            ),
             tf.compat.v1.summary.scalar("total_loss", self.net.total_loss),
             tf.compat.v1.summary.scalar("learning_rate", self.net._opt._lr),
         ]
@@ -127,9 +139,15 @@ class ExifSolver(object):
             )
         if self.use_exif_summary:
             self.tag_holder = {
-                tag: tf.compat.v1.placeholder(tf.float32) for tag in self.net.train_runner.tags
+                tag: tf.compat.v1.placeholder(tf.float32)
+                for tag in self.net.train_runner.tags
             }
-            self.individual_summary = {tag: tf.compat.v1.summary.scalar(f"individual/{tag}", self.tag_holder[tag]) for tag in self.net.train_runner.tags}
+            self.individual_summary = {
+                tag: tf.compat.v1.summary.scalar(
+                    f"individual/{tag}", self.tag_holder[tag]
+                )
+                for tag in self.net.train_runner.tags
+            }
 
         return
 
@@ -228,7 +246,8 @@ class ExifSolver(object):
                 )
 
                 tag_acc = 100.0 * (
-                    np.sum(np.round(output[:, i]) == label_batch[:, i]) / float(self.net.batch_size)
+                    np.sum(np.round(output[:, i]) == label_batch[:, i])
+                    / float(self.net.batch_size)
                 )
                 summary = self.sess.run(
                     self.individual_summary[tag],

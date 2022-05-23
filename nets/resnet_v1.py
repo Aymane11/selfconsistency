@@ -53,7 +53,7 @@ from nets import resnet_utils
 
 
 resnet_arg_scope = resnet_utils.resnet_arg_scope
-slim = tf.contrib.slim
+import tf_slim as slim
 
 
 @slim.add_arg_scope
@@ -198,7 +198,9 @@ def resnet_v1(
                 net = resnet_utils.stack_blocks_dense(net, blocks, output_stride)
                 if global_pool:
                     # Global average pooling.
-                    net = tf.reduce_mean(input_tensor=net, axis=[1, 2], name="pool5", keepdims=True)
+                    net = tf.reduce_mean(
+                        input_tensor=net, axis=[1, 2], name="pool5", keepdims=True
+                    )
                 if num_classes is not None:
                     net = slim.conv2d(
                         net,

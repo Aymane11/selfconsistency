@@ -42,7 +42,9 @@ class CustomRunner(object):
         self.inps = []
         shapes, dtypes = [], []
         for d in data:
-            inp = tf.compat.v1.placeholder(dtype=d.dtype, shape=[None] + list(d.shape[1:]))
+            inp = tf.compat.v1.placeholder(
+                dtype=d.dtype, shape=[None] + list(d.shape[1:])
+            )
             self.inps.append(inp)
             # remove batching index for individual element
             shapes.append(d.shape[1:])
