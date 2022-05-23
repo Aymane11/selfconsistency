@@ -38,6 +38,9 @@ class CustomRunner(object):
         # just directly return the necessary data
         # set via the setter fn
 
+        # To prevent [RuntimeError: tf.placeholder() is not compatible with eager execution.] error
+        tf.compat.v1.disable_eager_execution()
+
         data = self.data_fn()
         self.inps = []
         shapes, dtypes = [], []
