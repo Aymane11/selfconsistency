@@ -64,38 +64,38 @@ class EXIFNet:
                 self.batch_size % len(use_gpu) == 0
             ), "batch size should be modulo of the number of gpus"
             im_a, im_b, label = self.train_runner.get_inputs(self.batch_size)
-            self.im_a = tf.placeholder_with_default(
+            self.im_a = tf.compat.v1.placeholder_with_default(
                 im_a, [None, self.im_size, self.im_size, 3]
             )
-            self.im_b = tf.placeholder_with_default(
+            self.im_b = tf.compat.v1.placeholder_with_default(
                 im_b, [None, self.im_size, self.im_size, 3]
             )
-            self.label = tf.placeholder_with_default(label, [None, self.num_classes])
-            self.cls_label = tf.placeholder(tf.float32, [None, 1])
+            self.label = tf.compat.v1.placeholder_with_default(label, [None, self.num_classes])
+            self.cls_label = tf.compat.v1.placeholder(tf.float32, [None, 1])
         else:
-            self.im_a = tf.placeholder(
+            self.im_a = tf.compat.v1.placeholder(
                 tf.float32, [None, self.im_size, self.im_size, 3]
             )
-            self.im_b = tf.placeholder(
+            self.im_b = tf.compat.v1.placeholder(
                 tf.float32, [None, self.im_size, self.im_size, 3]
             )
-            self.label = tf.placeholder(tf.float32, [None, self.num_classes])
-            self.cls_label = tf.placeholder(tf.float32, [None, 1])
+            self.label = tf.compat.v1.placeholder(tf.float32, [None, self.num_classes])
+            self.cls_label = tf.compat.v1.placeholder(tf.float32, [None, 1])
 
-        self.is_training = tf.placeholder_with_default(self._is_training, None)
+        self.is_training = tf.compat.v1.placeholder_with_default(self._is_training, None)
 
         self.extract_features = self.extract_features_resnet50
         # if precomputing, need to populate via feed dict then compute with selecting indices
         # self.im_a_ind, self.im_b_ind
-        self.precomputed_features = tf.placeholder(tf.float32, [None, 4096])
+        self.precomputed_features = tf.compat.v1.placeholder(tf.float32, [None, 4096])
         # Add second precompute_features_b for different patch gridding
-        self.im_a_index = tf.placeholder(
+        self.im_a_index = tf.compat.v1.placeholder(
             tf.int32,
             [
                 None,
             ],
         )
-        self.im_b_index = tf.placeholder(
+        self.im_b_index = tf.compat.v1.placeholder(
             tf.int32,
             [
                 None,
@@ -125,7 +125,7 @@ class EXIFNet:
         if self.freeze_base:
             var_list = ops.extract_var("classify")
         else:
-            var_list = tf.trainable_variables()
+            var_list = tf.compat.v1.trainable_variables()
 
         assert len(var_list) > 0, "No variables are linked to the optimizer"
         return var_list
@@ -140,7 +140,7 @@ class EXIFNet:
         Supports multi-GPU.
         Initializes the optimizer in the network graph.
         """
-        with tf.variable_scope(tf.get_variable_scope()):
+        with tf.compat.v1.variable_scope(tf.compat.v1.get_variable_scope()):
             # Split data into n equal batches
             im_a_list = tf.split(self.im_a, len(self.use_gpu))
             im_b_list = tf.split(self.im_b, len(self.use_gpu))
@@ -149,7 +149,7 @@ class EXIFNet:
                 cls_label_list = tf.split(self.cls_label, len(self.use_gpu))
 
             # We intialize the optimizer here
-            self._opt = tf.train.AdamOptimizer(learning_rate=self.learning_rate)
+            self._opt = tf.compat.v1.train.AdamOptimizer(learning_rate=self.learning_rate)
 
             # Used to average
             all_grads = []
@@ -163,24 +163,24 @@ class EXIFNet:
                 print("Initializing graph on gpu %i" % gpu_id)
                 with tf.device("/gpu:%d" % gpu_id):
                     if preemptive_reuse:
-                        tf.get_variable_scope().reuse_variables()
+                        tf.compat.v1.get_variable_scope().reuse_variables()
 
                     total_loss = 0
                     im_a, im_b, label = im_a_list[i], im_b_list[i], label_list[i]
                     if self.train_classifcation:
                         cls_label = cls_label_list[i]
 
-                    with tf.name_scope("extract_feature_a"):
+                    with tf.compat.v1.name_scope("extract_feature_a"):
                         im_a_feat = self.extract_features(im_a, name="feature_resnet")
                         self.im_a_feat = im_a_feat
 
-                    with tf.name_scope("extract_feature_b"):
+                    with tf.compat.v1.name_scope("extract_feature_b"):
                         im_b_feat = self.extract_features(
                             im_b, name="feature_resnet", reuse=True
                         )
                         self.im_b_feat = im_b_feat
 
-                    with tf.name_scope("predict_same"):
+                    with tf.compat.v1.name_scope("predict_same"):
                         feat_ab = tf.concat([im_a_feat, im_b_feat], axis=-1)
                         out = self.predict(feat_ab, name="predict")
                         all_out.append(out)
@@ -191,9 +191,9 @@ class EXIFNet:
                         pc_out = self.predict(pc_feat_ab, name="predict", reuse=True)
 
                     if not self.freeze_base:
-                        with tf.name_scope("exif_loss"):
+                        with tf.compat.v1.name_scope("exif_loss"):
                             loss = tf.reduce_mean(
-                                tf.nn.sigmoid_cross_entropy_with_logits(
+                                input_tensor=tf.nn.sigmoid_cross_entropy_with_logits(
                                     labels=label, logits=out
                                 )
                             )
@@ -201,7 +201,7 @@ class EXIFNet:
                             total_loss += loss
 
                     if self.train_classifcation:
-                        with tf.name_scope("predict_same_image"):
+                        with tf.compat.v1.name_scope("predict_same_image"):
                             if self.use_classify_with_feat:
                                 cls_out = self.classify_with_feat(
                                     im_a_feat, im_b_feat, out, name="classify"
@@ -219,16 +219,16 @@ class EXIFNet:
                                     pc_out, name="classify", reuse=True
                                 )
                             all_cls_out.append(cls_out)
-                        with tf.name_scope("classification_loss"):
+                        with tf.compat.v1.name_scope("classification_loss"):
                             cls_loss = tf.reduce_mean(
-                                tf.nn.sigmoid_cross_entropy_with_logits(
+                                input_tensor=tf.nn.sigmoid_cross_entropy_with_logits(
                                     labels=cls_label, logits=cls_out
                                 )
                             )
                             all_cls_loss.append(cls_loss)
                             total_loss += cls_loss
 
-                    tf.get_variable_scope().reuse_variables()
+                    tf.compat.v1.get_variable_scope().reuse_variables()
                     grad = self._opt.compute_gradients(
                         total_loss, var_list=self.get_variables()
                     )
@@ -241,12 +241,12 @@ class EXIFNet:
         self.avg_grads = avg_grads
 
         if not self.freeze_base:
-            self.loss = tf.reduce_mean(all_loss)
+            self.loss = tf.reduce_mean(input_tensor=all_loss)
 
         if self.train_classifcation:
-            self.cls_loss = tf.reduce_mean(all_cls_loss)
+            self.cls_loss = tf.reduce_mean(input_tensor=all_cls_loss)
 
-        self.total_loss = tf.reduce_mean(all_total_loss)
+        self.total_loss = tf.reduce_mean(input_tensor=all_total_loss)
         self.opt = self._opt.apply_gradients(avg_grads)  # trains all variables for now
 
         # For logging results
@@ -255,14 +255,14 @@ class EXIFNet:
 
         if not self.freeze_base:
             correct_prediction = tf.equal(tf.round(self.pred), tf.round(self.label))
-            self.accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+            self.accuracy = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
 
         if self.train_classifcation:
             self.cls_out = tf.concat(all_cls_out, axis=0)
             self.cls_pred = tf.sigmoid(self.cls_out)
             self.pc_cls_pred = tf.sigmoid(pc_cls_out)
             self.cls_accuracy = tf.reduce_mean(
-                tf.cast(
+                input_tensor=tf.cast(
                     tf.equal(tf.round(self.cls_pred), tf.round(self.cls_label)),
                     tf.float32,
                 )
@@ -272,7 +272,7 @@ class EXIFNet:
     def extract_features_resnet50(self, im, name, is_training=True, reuse=False):
         use_global_pool = True
         num_classes = 4096 if use_global_pool else 512
-        with tf.name_scope(name):
+        with tf.compat.v1.name_scope(name):
             with slim.arg_scope(resnet_utils.resnet_arg_scope()):
                 out, _ = resnet_v2.resnet_v2_50(
                     inputs=im,
@@ -304,7 +304,7 @@ class EXIFNet:
         return out
 
     def predict(self, feat_ab, name, reuse=False):
-        with tf.variable_scope(name, reuse=reuse):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
             in_size = int(feat_ab.get_shape()[1])
             out = slim.stack(
                 feat_ab, slim.fully_connected, [4096, 2048, 1024], scope="fc"
@@ -318,7 +318,7 @@ class EXIFNet:
         self, im_a_feat, im_b_feat, affinity_pred, name, is_training=True, reuse=False
     ):
         """Predicts whether the 2 image patches are from the same image"""
-        with tf.variable_scope(name, reuse=reuse):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
             x = tf.concat([im_a_feat, im_b_feat, affinity_pred], axis=-1)
             x = slim.stack(x, slim.fully_connected, [4096, 1024], scope="fc")
             out = slim.fully_connected(x, 1, activation_fn=None, scope="fc_out")
@@ -326,7 +326,7 @@ class EXIFNet:
 
     def classify(self, affinity_pred, name, is_training=True, reuse=False):
         """Predicts whether the 2 image patches are from the same image"""
-        with tf.variable_scope(name, reuse=reuse):
+        with tf.compat.v1.variable_scope(name, reuse=reuse):
             x = slim.stack(affinity_pred, slim.fully_connected, [512], scope="fc")
             out = slim.fully_connected(x, 1, activation_fn=None, scope="fc_out")
         return out

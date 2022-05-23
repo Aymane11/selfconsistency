@@ -45,14 +45,14 @@ class ExifSolver(object):
         self.net = net
 
         # Initialize some basic things
-        self.sess = tf.Session(config=ops.config(self.net.use_gpu))
+        self.sess = tf.compat.v1.Session(config=ops.config(self.net.use_gpu))
         if self.init_summary:
-            self.train_writer = tf.summary.FileWriter(os.path.join("./tb", f"{self.exp_name}_train"), self.sess.graph)
+            self.train_writer = tf.compat.v1.summary.FileWriter(os.path.join("./tb", f"{self.exp_name}_train"), self.sess.graph)
 
-            self.test_writer = tf.summary.FileWriter(os.path.join("./tb", f"{self.exp_name}_test"))
+            self.test_writer = tf.compat.v1.summary.FileWriter(os.path.join("./tb", f"{self.exp_name}_test"))
 
             self.setup_summary()
-        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=None)
+        self.saver = tf.compat.v1.train.Saver(tf.compat.v1.global_variables(), max_to_keep=None)
 
         # Try to load checkpoint
         if self.checkpoint is not None:
@@ -70,22 +70,22 @@ class ExifSolver(object):
                     variables_to_restore = ops.get_variables(
                         self.checkpoint, exclude_scopes=["Adam"]
                     )
-                    restorer = tf.train.Saver(variables_to_restore)
+                    restorer = tf.compat.v1.train.Saver(variables_to_restore)
                     restorer.restore(self.sess, self.checkpoint)
                 except Exception:
                     print(
                         "Model and checkpoint did not match, attempting to partially restore"
                     )
-                    self.sess.run(tf.global_variables_initializer())
+                    self.sess.run(tf.compat.v1.global_variables_initializer())
                     # Make sure you correctly set exclude_scopes if you are finetuining models or extending it
                     variables_to_restore = ops.get_variables(
                         self.checkpoint, exclude_scopes=["classify"]
                     )  #'resnet_v2_50/logits/', 'predict',
-                    restorer = tf.train.Saver(variables_to_restore)
+                    restorer = tf.compat.v1.train.Saver(variables_to_restore)
                     restorer.restore(self.sess, self.checkpoint)
 
                 print("Variables intitializing from scratch")
-                for var in tf.trainable_variables():
+                for var in tf.compat.v1.trainable_variables():
                     if var not in variables_to_restore:
                         print(var)
                 print("Succesfully restored %i variables" % len(variables_to_restore))
@@ -93,43 +93,43 @@ class ExifSolver(object):
         else:
             print("Initializing from scratch")
             self.i = 0
-            self.sess.run(tf.global_variables_initializer())
+            self.sess.run(tf.compat.v1.global_variables_initializer())
         self.start_i = self.i
 
         if self.net.use_tf_threading:
             self.coord = tf.train.Coordinator()
             self.net.train_runner.start_p_threads(self.sess)
-            tf.train.start_queue_runners(sess=self.sess, coord=self.coord)
+            tf.compat.v1.train.start_queue_runners(sess=self.sess, coord=self.coord)
         return
 
     def setup_summary(self):
         """Setup summary"""
         max_num_out = 2
         self.summary = [
-            tf.summary.image("input_a", self.net.im_a, max_outputs=max_num_out),
-            tf.summary.image("input_b", self.net.im_b, max_outputs=max_num_out),
-            tf.summary.scalar("total_loss", self.net.total_loss),
-            tf.summary.scalar("learning_rate", self.net._opt._lr),
+            tf.compat.v1.summary.image("input_a", self.net.im_a, max_outputs=max_num_out),
+            tf.compat.v1.summary.image("input_b", self.net.im_b, max_outputs=max_num_out),
+            tf.compat.v1.summary.scalar("total_loss", self.net.total_loss),
+            tf.compat.v1.summary.scalar("learning_rate", self.net._opt._lr),
         ]
         if not self.net.freeze_base:
             self.summary.extend(
                 [
-                    tf.summary.scalar("exif_loss", self.net.loss),
-                    tf.summary.scalar("exif_accuracy", self.net.accuracy),
+                    tf.compat.v1.summary.scalar("exif_loss", self.net.loss),
+                    tf.compat.v1.summary.scalar("exif_accuracy", self.net.accuracy),
                 ]
             )
         if self.net.train_classifcation:
             self.summary.extend(
                 [
-                    tf.summary.scalar("cls_loss", self.net.cls_loss),
-                    tf.summary.scalar("cls_accuracy", self.net.cls_accuracy),
+                    tf.compat.v1.summary.scalar("cls_loss", self.net.cls_loss),
+                    tf.compat.v1.summary.scalar("cls_accuracy", self.net.cls_accuracy),
                 ]
             )
         if self.use_exif_summary:
             self.tag_holder = {
-                tag: tf.placeholder(tf.float32) for tag in self.net.train_runner.tags
+                tag: tf.compat.v1.placeholder(tf.float32) for tag in self.net.train_runner.tags
             }
-            self.individual_summary = {tag: tf.summary.scalar(f"individual/{tag}", self.tag_holder[tag]) for tag in self.net.train_runner.tags}
+            self.individual_summary = {tag: tf.compat.v1.summary.scalar(f"individual/{tag}", self.tag_holder[tag]) for tag in self.net.train_runner.tags}
 
         return
 

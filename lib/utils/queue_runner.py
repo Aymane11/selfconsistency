@@ -42,13 +42,13 @@ class CustomRunner(object):
         self.inps = []
         shapes, dtypes = [], []
         for d in data:
-            inp = tf.placeholder(dtype=d.dtype, shape=[None] + list(d.shape[1:]))
+            inp = tf.compat.v1.placeholder(dtype=d.dtype, shape=[None] + list(d.shape[1:]))
             self.inps.append(inp)
             # remove batching index for individual element
             shapes.append(d.shape[1:])
             dtypes.append(d.dtype)
         # The actual queue of data.
-        self.tf_queue = tf.FIFOQueue(
+        self.tf_queue = tf.queue.FIFOQueue(
             shapes=shapes,
             # override_dtypes or default
             dtypes=override_dtypes or dtypes,
@@ -67,7 +67,7 @@ class CustomRunner(object):
         data processes.
         """
         return self.tf_queue.dequeue_up_to(
-            tf.reduce_min([batch_size, self.tf_queue.size()])
+            tf.reduce_min(input_tensor=[batch_size, self.tf_queue.size()])
         )
 
     def thread_main(self, sess, stop_event):

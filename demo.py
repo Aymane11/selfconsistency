@@ -370,7 +370,7 @@ class Demo:
         )
         params["im_size"] = patch_size
         self.im_size = patch_size
-        tf.reset_default_graph()
+        tf.compat.v1.reset_default_graph()
         im = np.zeros((256, 256, 3))
         self.bu = benchmark_utils.EfficientBenchmark(
             self.solver,

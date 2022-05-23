@@ -18,7 +18,7 @@ def get_variables(finetune_ckpt_path, exclude_scopes=None):
 
 
 def config(use_gpu=None):
-    config = tf.ConfigProto()
+    config = tf.compat.v1.ConfigProto()
     config.gpu_options.allow_growth = True
     config.allow_soft_placement = True
     if use_gpu:
@@ -40,13 +40,13 @@ def extract_var(starts_with, is_not=False):
     for s in starts_with:
         if not is_not:
             selected_vars.extend(
-                [var for var in tf.trainable_variables() if var.op.name.startswith(s)]
+                [var for var in tf.compat.v1.trainable_variables() if var.op.name.startswith(s)]
             )
         else:
             selected_vars.extend(
                 [
                     var
-                    for var in tf.trainable_variables()
+                    for var in tf.compat.v1.trainable_variables()
                     if not var.op.name.startswith(s)
                 ]
             )
@@ -63,19 +63,19 @@ def init_solver(param):
 def multiclass_accuracy(pr, gt):
     """pr is logits. computes multiclass accuracy"""
     correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(pr)), tf.round(gt))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    accuracy = tf.reduce_mean(input_tensor=tf.cast(correct_prediction, tf.float32))
     return accuracy
 
 
 def leaky_relu(input, slope=0.2):
     """Leaky relu"""
-    with tf.name_scope("leaky_relu"):
+    with tf.compat.v1.name_scope("leaky_relu"):
         return tf.maximum(slope * input, input)
 
 
 def batch_norm(input, is_training):
     """batch normalization"""
-    with tf.variable_scope("batch_norm"):
+    with tf.compat.v1.variable_scope("batch_norm"):
         return tf.contrib.layers.batch_norm(
             input,
             decay=0.9,
@@ -86,28 +86,28 @@ def batch_norm(input, is_training):
 
 
 def renorm(input, is_training):
-    return tf.layers.batch_normalization(
+    return tf.compat.v1.layers.batch_normalization(
         input, training=is_training, renorm_momentum=0.9
     )
 
 
 def instance_norm(input, is_training):
     """instance normalization"""
-    with tf.variable_scope("instance_norm"):
+    with tf.compat.v1.variable_scope("instance_norm"):
         num_out = input.get_shape()[-1]
-        scale = tf.get_variable(
+        scale = tf.compat.v1.get_variable(
             "scale",
             [num_out],
-            initializer=tf.random_normal_initializer(mean=1.0, stddev=0.02),
+            initializer=tf.compat.v1.random_normal_initializer(mean=1.0, stddev=0.02),
         )
-        offset = tf.get_variable(
+        offset = tf.compat.v1.get_variable(
             "offset",
             [num_out],
-            initializer=tf.random_normal_initializer(mean=0.0, stddev=0.02),
+            initializer=tf.compat.v1.random_normal_initializer(mean=0.0, stddev=0.02),
         )
-        mean, var = tf.nn.moments(input, axes=[1, 2], keep_dims=True)
+        mean, var = tf.nn.moments(x=input, axes=[1, 2], keepdims=True)
         epsilon = 1e-6
-        inv = tf.rsqrt(var + epsilon)
+        inv = tf.math.rsqrt(var + epsilon)
         return scale * (input - mean) * inv + offset
 
 
@@ -122,11 +122,11 @@ def fc(
     name="fc",
 ):
     """FC with norm, activation, dropout support"""
-    with tf.variable_scope(name, reuse=reuse):
+    with tf.compat.v1.variable_scope(name, reuse=reuse):
         x = slim.fully_connected(
             input, output, activation_fn=activation, normalizer_fn=norm, reuse=reuse
         )
-        x = tf.nn.dropout(x, dropout)
+        x = tf.nn.dropout(x, rate=1 - (dropout))
     return x
 
 
@@ -147,7 +147,7 @@ def conv(
     """
     Performs convolution -> batchnorm -> relu
     """
-    with tf.variable_scope(name, reuse=reuse):
+    with tf.compat.v1.variable_scope(name, reuse=reuse):
         dropout = 1.0 if dropout is None else dropout
         # Pre pad the input feature map
         x = pad(input, pad_size)
@@ -158,11 +158,11 @@ def conv(
             size,
             stride,
             activation_fn=None,
-            weights_initializer=tf.truncated_normal_initializer(stddev=0.02),
+            weights_initializer=tf.compat.v1.truncated_normal_initializer(stddev=0.02),
             padding=padding,
         )
         # Apply dropout
-        x = tf.nn.dropout(x, dropout)
+        x = tf.nn.dropout(x, rate=1 - (dropout))
         # Apply activation
         x = activation(x) if activation else x
         # Apply normalization
@@ -175,7 +175,7 @@ def pad(input, pad_size):
     if not pad_size:
         return input
     return tf.pad(
-        input, [[0, 0], [pad_size, pad_size], [pad_size, pad_size], [0, 0]], "REFLECT"
+        tensor=input, paddings=[[0, 0], [pad_size, pad_size], [pad_size, pad_size], [0, 0]], mode="REFLECT"
     )
 
 
@@ -204,7 +204,7 @@ def average_gradients(grad_list):
 
         # Average over the 'tower' dimension.
         grad = tf.concat(axis=0, values=grads)
-        grad = tf.reduce_mean(grad, 0)
+        grad = tf.reduce_mean(input_tensor=grad, axis=0)
 
         # Keep in mind that the Variables are redundant because they are shared
         # across towers. So .. we will just return the first tower's pointer to
